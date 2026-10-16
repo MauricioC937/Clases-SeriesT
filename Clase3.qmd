@@ -1,0 +1,88 @@
+---
+title: "Clase3"
+format: html
+editor: visual
+---
+
+## Clase Series Temporales.
+
+```{r}
+library('fpp3')
+```
+
+```{r}
+melsyd_economy <- ansett %>%
+  filter(Airports == "ADL-PER", Class == "Business") %>%
+  mutate(Passengers = Passengers/1000)
+autoplot(melsyd_economy, Passengers) +
+  labs(title = "Ansett airlines economy class",
+       subtitle = "Melbourne-Sydney",
+       y = "Passengers ('000)")
+```
+
+```{r}
+# base %>% autoplot(columna)
+head(ansett)
+?AirPassengers
+
+```
+
+```{r}
+PBS |>
+  filter(ATC2 == "A10") |>
+  select(Month, Concession, Type, Cost) |>
+  summarise(TotalC = sum(Cost)) |>
+  mutate(Cost = TotalC / 1e6) -> a10
+```
+
+```{r}
+autoplot(a10, Cost) +
+  labs(y = "$ (millions)",
+       title = "Australian antidiabetic drug sales")
+```
+
+## Gráficos estacionales
+
+```{r}
+a10 %>%
+  gg_season(Cost, labels = "both") +
+  labs(y = "$ (millions)",
+       title = "Seasonal plot: Antidiabetic drug sales")
+```
+
+```{r}
+melsyd_economy %>% fill_gaps()%>% gg_season(Passengers, labels = "both") + labs(y = "Pasajeros",title = "Viajes")
+```
+
+```{r}
+sum(is.na(ansett['Passengers']))
+melsyd_economy
+```
+
+## Múltiples periodos estacionales
+
+```{r}
+vic_elec %>% gg_season(Demand, period = "day") +
+  theme(legend.position = "none") +
+  labs(y="MWh", title="Electricity demand: Victoria")
+```
+
+```{r}
+vic_elec %>% gg_season(Demand, period = "week") +
+  theme(legend.position = "none") +
+  labs(y="MWh", title="Electricity demand: Victoria")
+```
+
+```{r}
+vic_elec %>% gg_season(Demand, period = "year") +
+  labs(y="MWh", title="Electricity demand: Victoria")
+```
+
+```{r}
+a10 %>%
+  gg_subseries(Cost) +
+  labs(
+    y = "$ (millions)",
+    title = "Australian antidiabetic drug sales"
+  )
+```
