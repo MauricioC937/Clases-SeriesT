@@ -1,0 +1,82 @@
+---
+title: "Clase5ST"
+format: html
+editor: visual
+---
+
+# Clase Series Temporales
+
+```{r}
+library('tidyverse')
+library('fpp3')
+```
+
+```{r}
+lambda <- aus_production %>%
+  features(Gas, features = guerrero)%>%
+  pull(lambda_guerrero)
+lambda
+aus_production %>%
+  autoplot(box_cox(Gas, lambda))
+```
+
+```{r}
+library(readr)
+#Abrimos la base de datos 
+precipitaciones <- read_csv("C:/Users/math.epn.edu.ec/Documents/SeriesT/Precipitaciones-main/Precipitaciones-main/data/data.csv",col_types = cols(Fecha = col_date())
+                            ) %>% mutate(Fecha = yearmonth(Fecha)) %>% 
+                            as_tsibble(key = Estacion, index = Fecha)
+head(precipitaciones)
+```
+
+```{r}
+#Gráfica de evolución temporal
+
+#Evolución temporal por estaciones donde se tomaron mediciones de precipitación
+unique(precipitaciones$NombreEstacion) #Estaciones existentes
+#Se toma la estación QUEROCHACA(UTA)
+Prec_Estacion<- precipitaciones %>% fill_gaps() %>% filter(
+  NombreEstacion == 'QUEROCHACA(UTA)',Año>1990) 
+
+Prec_Estacion%>% autoplot(Precipitación) +
+  labs(x = "Fecha", y = "Precipitación", title = 'Precipitaciones en la Estación Querochaca')
+Prec_Estacion
+```
+
+```{r}
+lambda <- Prec_Estacion %>%
+  features(Precipitación, features = guerrero) %>%
+  pull(lambda_guerrero)
+lambda
+Prec_Estacion %>%
+  autoplot(box_cox(Precipitación, lambda))
+```
+
+## Método de descomposición STL
+
+```{r}
+us_retail_employment <- us_employment %>%
+  filter(year(Month) >= 1990, Title == "Retail Trade") %>%
+  select(-Series_ID)
+autoplot(us_retail_employment, Employed) +
+  labs(y = "Persons (thousands)",
+       title = "Total employment in US retail")
+
+dcmp <- us_retail_employment %>%
+  model(stl = STL(Employed))
+components(dcmp)
+```
+
+```{r}
+dcmp <- Prec_Estacion %>%
+  model(stl = STL(Precipitación))
+components(dcmp)
+```
+
+```{r}
+components(dcmp) %>%
+  as_tsibble() 
+
+
+components(dcmp) %>% autoplot()
+```
