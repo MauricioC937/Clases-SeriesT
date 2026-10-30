@@ -1,0 +1,117 @@
+---
+title: "Clase6ST"
+format: html
+editor: visual
+---
+
+# Clase Series Temporales
+
+## Suavizado de medias móviles
+
+```{r}
+library(fpp3)
+```
+
+```{r}
+aus_exports <- global_economy |>
+  filter(Country == "Australia") |>
+  mutate(
+    `5-MA` = slider::slide_dbl(
+      Exports,
+      mean,
+      .before = 2,
+      .after = 4,
+      .complete = TRUE
+    )
+  )
+aus_exports
+```
+
+```{r}
+aus_exports |>
+  autoplot(Exports) +
+  geom_line(aes(y = `5-MA`), colour = "#D55E00") +
+  labs(y = "% del PIB", title = "Exportaciones totales de Australia")
+```
+
+```{r}
+us_retail_employment_ma <- us_retail_employment |>
+  mutate(
+    `12-MA` = slider::slide_dbl(
+      Employed,
+      mean,
+      .before = 5,
+      .after = 6,
+      .complete = TRUE
+    ),
+    `2x12-MA` = slider::slide_dbl(
+      `12-MA`,
+      mean,
+      .before = 1,
+      .after = 0,
+      .complete = TRUE
+    )
+  )
+us_retail_employment_ma |>
+  autoplot(Employed, colour = "gray") +
+  geom_line(aes(y = `2x12-MA`), colour = "#D55E00") +
+  labs(
+    y = "Personas (miles)",
+    title = "Empleo total en el comercio minorista de EE.UU."
+  )
+```
+
+$y_t-​\hat{T_t}=P_t+R_t$
+
+​
+
+```{r}
+us_retail_employment |>
+  model(
+    classical_decomposition(Employed, type = "additive")
+  ) |>
+  components() |>
+  autoplot() +
+  labs(
+    title = "Classical additive decomposition of total
+                  US retail employment"
+  )
+```
+
+```{r}
+us_retail_employment_ma |>
+  autoplot(Employed, colour = "gray")
+```
+
+```{r}
+yt <- us_retail_employment
+
+Pt <- us_retail_employment_ma
+
+z <- us_retail_employment %>% mutate(yt_pt=yt$Employed-Pt$`2x12-MA`)
+
+z %>% autoplot(yt_pt, colour = "black")
+
+media_z <- z|>group_by(month(Month))|>mutate(media= mean(yt_pt,na.rm=TRUE))
+autoplot(media_z,media)
+```
+
+```{r}
+us_retail_employment_pt<- us_retail_employment|>mutate(p = Employed - us_retail_employment_ma$`2x12-MA`)
+
+a <- us_retail_employment_pt|>group_by(month(Month))|>mutate(media= mean(p,na.rm=TRUE))
+autoplot(a,media)
+
+a
+```
+
+```{r}
+#Javi
+Rt <- a %>% mutate(Residuo=p-media)
+autoplot(Rt,Residuo)
+```
+
+```{r}
+Rt_ <- media_z %>% mutate(Residuo=yt_pt-media)
+autoplot(Rt_,Residuo)
+```
