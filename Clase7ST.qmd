@@ -1,0 +1,51 @@
+---
+title: "Clase7ST"
+format: html
+editor: visual
+---
+
+## Metodo X-11
+
+```{r}
+library(fpp3)
+install.packages("seasonal")
+```
+
+```{r}
+library(seasonal)
+x11_dcmp <- us_retail_employment |>
+  model(x11 = X_13ARIMA_SEATS(Employed ~ x11())) |>
+  components()
+autoplot(x11_dcmp) +
+  labs(
+    x = "Mes",
+    title = "Descomposición X-11 del empleo total en el comercio minorista de EE.UU."
+  )
+```
+
+```{r}
+x11_dcmp <- us_retail_employment |>
+  model(
+    classical_decomposition(Employed, type = "additive")
+  ) |>
+  components()
+autoplot(x11_dcmp) +
+  labs(
+    x = "Mes",
+    title = "Descomposición aditiva del empleo total en el comercio minorista de EE.UU."
+  )
+```
+
+```{r}
+us_retail_employment |>
+  model(
+    STL(
+      Employed ~ trend(window = 11) +
+        season(window = "periodic"),
+      robust = FALSE
+    )
+  ) |>
+  components() |>
+  autoplot() +
+  labs(x = "Mes")
+```
