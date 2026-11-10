@@ -4,48 +4,146 @@ format: html
 editor: visual
 ---
 
-## Metodo X-11
+# Características de las series temporales
 
 ```{r}
 library(fpp3)
-install.packages("seasonal")
 ```
 
 ```{r}
-library(seasonal)
-x11_dcmp <- us_retail_employment |>
-  model(x11 = X_13ARIMA_SEATS(Employed ~ x11())) |>
-  components()
-autoplot(x11_dcmp) +
-  labs(
-    x = "Mes",
-    title = "Descomposición X-11 del empleo total en el comercio minorista de EE.UU."
+PBS |>
+  filter(ATC2 == "A10") |>
+  select(Month, Concession, Type, Cost) |>
+  summarise(TotalC = sum(Cost)) |>
+  mutate(Cost = TotalC / 1e6) -> a10
+```
+
+```{r}
+a10 |>
+  features(Cost, list(mediana = median)) |>
+  arrange(mediana)
+
+a10 |> features(Cost, quantile)
+```
+
+```{r}
+a10 |> features(Cost, feat_acf)
+```
+
+```{r}
+tourism |>
+  features(Trips, feat_stl) %>% summarise(max_valor = max(trend_strength, na.rm = TRUE))
+
+
+
+```
+
+```{r}
+tourism |>
+  features(Trips, feat_stl) %>% summarise(max_valor = max(seasonal_strength_year, na.rm = TRUE))
+```
+
+```{r}
+tourism |>
+  features(Trips, feat_stl) |>
+  filter(
+    seasonal_strength_year == max(seasonal_strength_year)
+  )|>
+  left_join(tourism, by = c("State", "Region", "Purpose"), multiple = "all") |>
+  ggplot(aes(x = Quarter, y = Trips)) +
+  geom_line() +
+  facet_grid(vars(State, Region, Purpose)) +
+  labs(x = "Trimestre")
+
+```
+
+```{r}
+tourism |>
+  features(Trips, feat_stl) %>% summarise(min_val = min(seasonal_trough_year , na.rm = TRUE))
+```
+
+```{r}
+tourism |>
+  features(Trips, feat_stl) |>
+  filter(
+    spikiness  == max(spikiness )
   )
 ```
 
+linearity
+
 ```{r}
-x11_dcmp <- us_retail_employment |>
-  model(
-    classical_decomposition(Employed, type = "additive")
-  ) |>
-  components()
-autoplot(x11_dcmp) +
-  labs(
-    x = "Mes",
-    title = "Descomposición aditiva del empleo total en el comercio minorista de EE.UU."
+tourism |>
+  features(Trips, feat_stl) %>% summarise(max_val = max(linearity , na.rm = TRUE))
+
+tourism |>
+  features(Trips, feat_stl) |>
+  filter(
+    linearity  == max(linearity)
   )
+
 ```
 
 ```{r}
-us_retail_employment |>
-  model(
-    STL(
-      Employed ~ trend(window = 11) +
-        season(window = "periodic"),
-      robust = FALSE
-    )
-  ) |>
-  components() |>
-  autoplot() +
-  labs(x = "Mes")
+tourism |>
+  features(Trips, feat_stl) %>% summarise(max_val = max(curvature , na.rm = TRUE))
+```
+
+curvature
+
+```{r}
+tourism |>
+  features(Trips, feat_stl) |>
+  filter(
+    curvature  == max(curvature)
+  )
+```
+
+Gráficas
+
+Linealidad
+
+```{r}
+tourism |>
+  features(Trips, feat_stl) |>
+  filter(
+    linearity == max(linearity)
+  )|>
+  left_join(tourism, by = c("State", "Region", "Purpose"), multiple = "all") |>
+  ggplot(aes(x = Quarter, y = Trips)) +
+  geom_line() +
+  facet_grid(vars(State, Region, Purpose)) +
+  labs(x = "Trimestre")
+```
+
+Curvatura
+
+```{r}
+tourism |>
+  features(Trips, feat_stl) |>
+  filter(
+    curvature == max(curvature)
+  )|>
+  left_join(tourism, by = c("State", "Region", "Purpose"), multiple = "all") |>
+  ggplot(aes(x = Quarter, y = Trips)) +
+  geom_line() +
+  facet_grid(vars(State, Region, Purpose)) +
+  labs(x = "Trimestre")
+```
+
+```{r}
+tourism |>
+  features(Trips, feat_stl)
+```
+
+```{r}
+a10 %>% autoplot(Cost)
+```
+
+`unitroot_kpss`
+
+```{r}
+a10 %>% features(Cost,unitroot_kpss)
+a10 %>% features(Cost,unitroot_pp) #Probar que una serie no es estacionaria
+a10 %>% features(Cost,unitroot_nsdiffs)
 ```
