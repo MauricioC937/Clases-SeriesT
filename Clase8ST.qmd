@@ -1,0 +1,160 @@
+---
+title: "Clase8ST"
+format: html
+editor: visual
+---
+
+## Clase Series
+
+```{r}
+library(fpp3)
+gdppc <- global_economy |>
+  mutate(GDP_per_capita = GDP / Population)
+```
+
+```{r}
+gdppc |>
+  filter(Country == "Sweden") |>
+  autoplot(GDP_per_capita) +
+  labs(x = "Año", y = "$US", title = "PIB per cápita de Suecia")
+```
+
+```{r}
+fit <- gdppc |>
+  model(trend_model = TSLM(GDP_per_capita ~ trend()))
+```
+
+```{r}
+fit |> forecast(h = "3 years")
+```
+
+```{r}
+fit |>
+  forecast(h = "3 years") |>
+  filter(Country == "Sweden") |>
+  autoplot(gdppc) +
+  labs(x = "Año", y = "$US", title = "PIB per cápita de Suecia") +
+  guides(fill_ramp = guide_legend(title = "Nivel"))
+```
+
+## Métodos
+
+```{r}
+bricks <- aus_production |>
+  filter_index("1970 Q1" ~ "2004 Q4") |>
+  select(Bricks)
+```
+
+```{r}
+bricks |> model(MEAN(Bricks)) ->fit_mean
+```
+
+```{r}
+fit_mean |>
+  forecast(h = "5 years") |>
+  autoplot(bricks) 
+
+```
+
+```{r}
+fit2 <- bricks |>
+  model(trend_model = TSLM(Bricks ~ trend()))
+```
+
+```{r}
+fit2 |>
+  forecast(h = "5 years") |>
+  autoplot(bricks) 
+
+  
+```
+
+```{r}
+
+```
+
+```{r}
+fit3 <- bricks |> model(NAIVE(Bricks))
+fit3 |>
+  forecast(h = "5 years") |>
+  autoplot(bricks) 
+```
+
+```{r}
+ft <- bricks |> model(trend_model = TSLM(Bricks ~ trend()),MEAN(Bricks),NAIVE(Bricks))
+ft|>forecast(h = "5 years") |>autoplot(bricks)
+```
+
+```{r}
+fit4 <- bricks |> model(SNAIVE(Bricks ~ lag("2 year")))
+fit4 |>forecast(h = "5 years") |>autoplot(bricks)
+```
+
+## Drift
+
+```{r}
+fit5 <- bricks |> model(NAIVE(Bricks),RW(Bricks ~ drift()))
+fit5 |>forecast(h = "15 years") |>autoplot(bricks,level=NULL)
+
+```
+
+```{r}
+# Set training data from 1992 to 2006
+train <- aus_production |>
+  filter_index("1992 Q1" ~ "2006 Q4")
+# Fit the models
+beer_fit <- train |>
+  model(
+    Media = MEAN(Beer),
+    `Naïve` = NAIVE(Beer),
+    `Naïve estacional` = SNAIVE(Beer)
+  )
+# Generate forecasts for 14 quarters
+beer_fc <- beer_fit |> forecast(h = 14)
+# Plot forecasts against actual values
+beer_fc |>
+  autoplot(train, level = NULL) +
+  autolayer(
+    filter_index(aus_production, "2007 Q1" ~ .),
+    colour = "black"
+  ) +
+  labs(
+    x = "Trimestre",
+    y = "Megalitros",
+    title = "Predicciones de la producción trimestral de cerveza"
+  ) +
+  guides(colour = guide_legend(title = "Predicción"))
+```
+
+```{r}
+# Re-index based on trading days
+google_stock <- gafa_stock |>
+  filter(Symbol == "GOOG", year(Date) >= 2015) |>
+  mutate(day = row_number()) |>
+  update_tsibble(index = day, regular = TRUE)
+# Filter the year of interest
+google_2015 <- google_stock |> filter(year(Date) == 2015)
+# Fit the models
+google_fit <- google_2015 |>
+  model(
+    Media = MEAN(Close),
+    `Naïve` = NAIVE(Close),
+    Deriva = NAIVE(Close ~ drift())
+  )
+# Produce forecasts for the trading days in January 2016
+google_jan_2016 <- google_stock |>
+  filter(yearmonth(Date) == yearmonth("2016 Jan"))
+google_fc <- google_fit |>
+  forecast(new_data = google_jan_2016)
+# Plot the forecasts
+google_fc |>
+  autoplot(google_2015) +
+  autolayer(google_jan_2016, Close, colour = "black") +
+  labs(
+    x = "Día de negociación",
+    y = "$US",
+    title = "Precios de cierre diarios de las acciones de Google",
+    subtitle = "(ene 2015 - ene 2016)"
+  ) +
+  guides(colour = guide_legend(title = "Predicción"))
+```
